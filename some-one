@@ -1,0 +1,134 @@
+# main.tf
+provider "aws" {
+    region = "eu-west-2"
+}
+
+module "db" {
+    source = "./db"
+    
+}
+
+module "web" {
+    source = "./web"  
+}
+
+output "PrivateIP" {
+    value = module.db.PrivateIP
+}
+
+output "PublicIP" {
+    value = module.web.pub_ip
+}
+
+======
+# web.tf
+resource "aws_instance" "web" {
+    ami = "ami-032598fcc7e9d1c7a"
+    instance_type = "t2.micro"
+    security_groups = [module.sg.sg_name]
+    user_data = file("./web/server-script.sh")
+    tags = {
+        Name = "Web Server"
+    }
+}
+
+output "pub_ip" {
+    value = module.eip.PublicIP
+}
+
+module "eip" {
+    source = "../eip"
+    instance_id = aws_instance.web.id
+}
+
+module "sg" {
+    source = "../sg"
+}
+
+==========
+#server-scrpt.sh
+
+#!/bin/bash
+sudo yum update
+sudo yum install -y httpd
+sudo systemctl start httpd
+sudo systemctl enable httpd
+echo "<h1>Hello from Terraform</h1>" | sudo tee /var/www/html/index.html
+
+===============
+# sg.tf
+variable "ingress" {
+    type = list(number)
+    default = [80,443]
+}
+
+variable "egress" {
+    type = list(number)
+    default = [80,443]
+}
+
+output "sg_name" {
+    value = aws_security_group.web_traffic.name
+}
+
+resource "aws_security_group" "web_traffic" {
+    name = "Allow Web Traffic"
+
+    dynamic "ingress" {
+        iterator = port
+        for_each = var.ingress
+        content {
+            from_port = port.value
+            to_port = port. value
+            protocol = "TCP"
+            cidr_blocks = ["0.0.0.0/0"]
+        }
+    }
+
+        dynamic "egress" {
+        iterator = port
+        for_each = var.egress
+        content {
+            from_port = port.value
+            to_port = port. value
+            protocol = "TCP"
+            cidr_blocks = ["0.0.0.0/0"]
+        }
+    }
+}
+
+========
+#eip.tf
+variable "instance_id" {
+    type = string
+}
+
+resource "aws_eip" "web_ip" {
+    instance = var.instance_id
+}
+
+output "PublicIP" {
+    value = aws_eip.web_ip.public_ip
+}
+
+=========
+#db.tf
+resource "aws_instance" "db" {
+    ami = "ami-032598fcc7e9d1c7a"
+    instance_type = "t2.micro"
+
+    tags = {
+        Name = "DB Server"
+    }
+}
+
+output "PrivateIP" {
+    value = aws_instance.db.private_ip
+}
+
+
+
+
+
+
+
