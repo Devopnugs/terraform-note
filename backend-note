@@ -1,0 +1,23 @@
+# main.tf
+
+  
+provider "aws" {
+    region = "eu-west-2"
+}
+
+resource "aws_vpc" "test" {
+    cidr_block = "10.0.0.0/16"
+}
+
+===========
+#backend.tf
+
+terraform {
+    backend "s3" {
+        key = "terraform/tfstate.tfstate"
+        bucket = "tj-remote-backend-2020"
+        region = "eu-west-2"
+        access_key = "your_access_key"
+        secret_key = "your_secret_key"
+    }
+}
