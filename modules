@@ -1,0 +1,31 @@
+provider "aws" {
+    region = "eu-west-2"
+}
+
+module "ec2module" {
+    source = "./ec2"             # calling child
+    ec2name = "Name From Module"
+}
+
+output "module_output" {
+    value = module.ec2module.instance_id
+}
+
+=======
+#ec2.tf
+
+variable "ec2name" {
+    type = string
+}
+
+resource "aws_instance" "ec2" {
+    ami = "ami-032598fcc7e9d1c7a"
+    instance_type = "t2.micro"
+    tags = {
+        Name = var.ec2name
+    }
+}
+
+output "instance_id" {
+    value = aws_instance.ec2.id
+}
